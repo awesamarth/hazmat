@@ -1,6 +1,4 @@
-import fs from "node:fs/promises";
-import path from "node:path";
-import crypto from "node:crypto";
+import { neon } from "@neondatabase/serverless";
 
 export type PublicReportPayload = {
   version: 1;
@@ -33,6 +31,16 @@ export type GithubUser = {
   avatar_url?: string;
 };
 
+type ReportRow = {
+  id: string;
+  github_login: string;
+  avatar_url: string | null;
+  payload_json: PublicReportPayload | string;
+  updated_at: string | Date;
+};
+
+let initialized = false;
+
 export function validatePayload(input: unknown): PublicReportPayload {
   if (!isObject(input)) throw new Error("Payload must be an object.");
   if (input.version !== 1) throw new Error("Unsupported payload version.");
@@ -61,45 +69,43 @@ export function validatePayload(input: unknown): PublicReportPayload {
 }
 
 export async function createReport(user: GithubUser, payload: PublicReportPayload): Promise<StoredReport> {
-  const report: StoredReport = {
-    id: crypto.randomBytes(5).toString("hex"),
-    owner: user.login,
-    ownerAvatarUrl: user.avatar_url,
-    createdAt: new Date().toISOString(),
-    payload,
-  };
-  const dir = ownerDir(user.login);
-  await fs.mkdir(dir, { recursive: true });
-  await fs.writeFile(path.join(dir, `${report.id}.json`), `${JSON.stringify(report, null, 2)}\n`, "utf8");
-  return report;
+  const sql = await db();
+  const id = randomId();
+  const rows = await sql`
+    insert into reports (github_login, github_id, avatar_url, report_id, payload_json, score, updated_at)
+    values (${user.login}, ${user.id}, ${user.avatar_url ?? null}, ${id}, ${JSON.stringify(payload)}::jsonb, ${payload.score}, now())
+    on conflict (github_login) do update set
+      github_id = excluded.github_id,
+      avatar_url = excluded.avatar_url,
+      report_id = excluded.report_id,
+      payload_json = excluded.payload_json,
+      score = excluded.score,
+      updated_at = now()
+    returning report_id as id, github_login, avatar_url, payload_json, updated_at
+  ` as ReportRow[];
+
+  return rowToReport(rows[0]);
 }
 
-export async function getReport(owner: string, id: string): Promise<StoredReport | null> {
-  try {
-    const raw = await fs.readFile(path.join(ownerDir(owner), `${id}.json`), "utf8");
-    return JSON.parse(raw) as StoredReport;
-  } catch {
-    return null;
-  }
+export async function getReport(owner: string, _id: string): Promise<StoredReport | null> {
+  return getLatestReport(owner);
 }
 
 export async function listReports(owner: string): Promise<StoredReport[]> {
-  try {
-    const dir = ownerDir(owner);
-    const files = await fs.readdir(dir);
-    const reports = await Promise.all(files.filter((file) => file.endsWith(".json")).map(async (file) => {
-      const raw = await fs.readFile(path.join(dir, file), "utf8");
-      return JSON.parse(raw) as StoredReport;
-    }));
-    return reports.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  } catch {
-    return [];
-  }
+  const latest = await getLatestReport(owner);
+  return latest ? [latest] : [];
 }
 
 export async function getLatestReport(owner: string): Promise<StoredReport | null> {
-  const reports = await listReports(owner);
-  return reports[0] ?? null;
+  if (!process.env.DATABASE_URL) return null;
+  const sql = await db();
+  const rows = await sql`
+    select report_id as id, github_login, avatar_url, payload_json, updated_at
+    from reports
+    where lower(github_login) = lower(${owner})
+    limit 1
+  ` as ReportRow[];
+  return rows[0] ? rowToReport(rows[0]) : null;
 }
 
 export async function fetchGithubUser(token: string): Promise<GithubUser> {
@@ -118,16 +124,44 @@ export async function fetchGithubUser(token: string): Promise<GithubUser> {
   return { id: body.id, login: body.login, avatar_url: body.avatar_url };
 }
 
-function ownerDir(owner: string): string {
-  return path.join(dataDir(), sanitize(owner));
+async function db() {
+  const url = process.env.DATABASE_URL;
+  if (!url) throw new Error("DATABASE_URL is not configured.");
+  const sql = neon(url);
+  if (!initialized) {
+    await sql`
+      create table if not exists reports (
+        github_login text primary key,
+        github_id bigint not null,
+        avatar_url text,
+        report_id text not null,
+        payload_json jsonb not null,
+        score integer not null,
+        created_at timestamptz not null default now(),
+        updated_at timestamptz not null default now()
+      )
+    `;
+    initialized = true;
+  }
+  return sql;
 }
 
-function dataDir(): string {
-  return process.env.HAZMAT_DATA_DIR || path.join(/*turbopackIgnore: true*/ process.cwd(), ".data", "reports");
+function rowToReport(row: ReportRow | undefined): StoredReport {
+  if (!row) throw new Error("Report row missing.");
+  const payload = typeof row.payload_json === "string" ? JSON.parse(row.payload_json) as PublicReportPayload : row.payload_json;
+  return {
+    id: row.id,
+    owner: row.github_login,
+    ...(row.avatar_url ? { ownerAvatarUrl: row.avatar_url } : {}),
+    createdAt: new Date(row.updated_at).toISOString(),
+    payload,
+  };
 }
 
-function sanitize(value: string): string {
-  return value.toLowerCase().replace(/[^a-z0-9-]/g, "-").slice(0, 80);
+function randomId(): string {
+  const bytes = new Uint8Array(5);
+  crypto.getRandomValues(bytes);
+  return [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 function findingGroups(input: unknown, name: string): Array<{ label: string; count: number; unique: number }> {

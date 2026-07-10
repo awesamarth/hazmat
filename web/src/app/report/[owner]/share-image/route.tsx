@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { exposureHex, exposurePhrase, exposureStatus } from "@/lib/cardText";
+import { getLatestReport } from "@/lib/reports";
 
 export const runtime = "edge";
 
@@ -17,7 +18,7 @@ type CardReport = {
 
 export async function GET(request: Request, { params }: Props) {
   const { owner } = await params;
-  const report = mockReport(owner);
+  const report = await loadCardReport(owner);
   const tone = exposureHex(report.score);
   const logo = new URL("/logo.png", request.url).toString();
 
@@ -95,6 +96,25 @@ function Stat({ label, value, color = "#f5f5ef" }: { label: string; value: numbe
   );
 }
 
+async function loadCardReport(owner: string): Promise<CardReport> {
+  const stored = await getLatestReport(owner);
+  if (!stored) return mockReport(owner);
+  const payload = stored.payload;
+  return {
+    owner: stored.owner,
+    score: payload.score,
+    generatedAt: formatDate(payload.generatedAt),
+    sources: payload.sources.map(capitalize),
+    stats: {
+      sourcesScanned: payload.totals.filesScanned,
+      secretLikeValues: payload.totals.secretFindings,
+      sensitiveRefs: payload.totals.fileReferenceFindings,
+      highRisk: payload.totals.highRiskFiles,
+    },
+    topFindings: payload.secretClasses.slice(0, 4).map((item) => [item.label, item.count]),
+  };
+}
+
 function mockReport(owner: string): CardReport {
   return {
     owner,
@@ -104,5 +124,13 @@ function mockReport(owner: string): CardReport {
     stats: { sourcesScanned: 412, secretLikeValues: 1956, sensitiveRefs: 6210, highRisk: 81 },
     topFindings: [["env-secret-assignment", 1180], ["database-url", 388], ["jwt", 44], ["webhook-url", 32]],
   };
+}
+
+function formatDate(value: string): string {
+  return new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(new Date(value));
+}
+
+function capitalize(value: string): string {
+  return value === "pi" ? "pi" : value.slice(0, 1).toUpperCase() + value.slice(1);
 }
 
