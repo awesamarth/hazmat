@@ -1,0 +1,29 @@
+{
+  "name": "hazmat",
+  "version": "0.0.0",
+  "description": "Local exposure scanner for AI coding-agent transcripts.",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "hazmat": "./dist/src/cli.js"
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsc",
+    "dev": "bun run src/cli.ts",
+    "start": "node dist/src/cli.js",
+    "test": "bun run build && node --test dist/test/*.test.js",
+    "web:dev": "cd web && bun run dev",
+    "web:build": "cd web && bun run build"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "chalk": "5",
+    "commander": "^15.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "typescript": "^7.0.2"
+  }
+}
