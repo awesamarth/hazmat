@@ -39,9 +39,9 @@ export default function Home() {
         </section>
 
         <section id="install" className="grid gap-3 border-t border-zinc-800 py-8 md:grid-cols-3">
-          <CopyCommand label="NPM" command="npx hazmat scan --publish" />
-          <CopyCommand label="BUN" command="bunx hazmat scan --publish" />
-          <CopyCommand label="CURL" command="curl -sSL https://hazmat.dev/install | sh" />
+          <CopyCommand label="NPM" command="npx hazmat-cli scan --publish" />
+          <CopyCommand label="BUN" command="bunx hazmat-cli scan --publish" />
+          <CopyCommand label="CURL" command="curl -sSL https://hazmat-beta.vercel.app/install | sh" />
         </section>
 
         <section id="privacy" className="border-t border-zinc-800 py-8">

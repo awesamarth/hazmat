@@ -116,7 +116,7 @@ export default function CardPreviewPage() {
 
               <div className="mt-8 rounded-2xl border border-hazard/20 bg-hazard/[0.06] p-5">
                 <p className="font-mono text-sm text-hazard">Run locally</p>
-                <code className="mt-2 block overflow-x-auto whitespace-nowrap font-mono text-sm text-zinc-300">$ npx hazmat scan --publish</code>
+                <code className="mt-2 block overflow-x-auto whitespace-nowrap font-mono text-sm text-zinc-300">$ npx hazmat-cli scan --publish</code>
               </div>
             </div>
           </div>

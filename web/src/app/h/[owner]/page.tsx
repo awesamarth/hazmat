@@ -49,9 +49,9 @@ function NoCard({ owner }: { owner: string }) {
         </section>
 
         <section className="mx-auto grid max-w-4xl gap-3">
-          <CopyCommand label="NPM" command="npx hazmat scan --publish" />
-          <CopyCommand label="BUN" command="bunx hazmat scan --publish" />
-          <CopyCommand label="MACOS / LINUX" command="curl -sSL https://hazmat.dev/install | sh" />
+          <CopyCommand label="NPM" command="npx hazmat-cli scan --publish" />
+          <CopyCommand label="BUN" command="bunx hazmat-cli scan --publish" />
+          <CopyCommand label="MACOS / LINUX" command="curl -sSL https://hazmat-beta.vercel.app/install | sh" />
         </section>
 
         <section className="mx-auto mt-8 max-w-4xl rounded-2xl border border-zinc-800 bg-panel/90 p-6">

@@ -93,7 +93,7 @@ export async function GET(request: Request) {
 
         <div style={{ marginTop: "auto", display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #28291f", paddingTop: 24, color: "#74746b", fontSize: 19 }}>
           <div style={{ display: "flex" }}>aggregate-only · no raw transcripts · no secrets</div>
-          <div style={{ display: "flex", color: tone, fontWeight: 900 }}>hazmat.dev</div>
+          <div style={{ display: "flex", color: tone, fontWeight: 900 }}>hazmat-beta.vercel.app</div>
         </div>
       </div>
     </div>,

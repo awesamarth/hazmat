@@ -79,7 +79,7 @@ export async function GET(request: Request, { params }: Props) {
 
         <div style={{ marginTop: "auto", display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #28291f", paddingTop: 24, color: "#74746b", fontSize: 19 }}>
           <div style={{ display: "flex" }}>aggregate-only · no raw transcripts · no secrets</div>
-          <div style={{ display: "flex", color: tone, fontWeight: 900 }}>hazmat.dev</div>
+          <div style={{ display: "flex", color: tone, fontWeight: 900 }}>hazmat-beta.vercel.app</div>
         </div>
       </div>
     </div>,
@@ -131,6 +131,8 @@ function formatDate(value: string): string {
 }
 
 function capitalize(value: string): string {
-  return value === "pi" ? "pi" : value.slice(0, 1).toUpperCase() + value.slice(1);
+  if (value === "pi") return "pi";
+  if (value.toLowerCase() === "opencode") return "OpenCode";
+  return value.slice(0, 1).toUpperCase() + value.slice(1);
 }
 

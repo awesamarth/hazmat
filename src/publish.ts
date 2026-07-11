@@ -3,7 +3,8 @@ import path from "node:path";
 import { homedir } from "node:os";
 import type { SharePayload } from "./types.js";
 
-const DEFAULT_API_URL = "http://localhost:3000";
+const DEFAULT_API_URL = "https://hazmat-beta.vercel.app";
+const DEFAULT_GITHUB_CLIENT_ID = "Ov23liWdPNynna949jms";
 const GITHUB_DEVICE_CODE_URL = "https://github.com/login/device/code";
 const GITHUB_ACCESS_TOKEN_URL = "https://github.com/login/oauth/access_token";
 
@@ -39,11 +40,7 @@ export function apiBaseUrl(): string {
 }
 
 export function githubClientId(): string {
-  const value = process.env.HAZMAT_GITHUB_CLIENT_ID || process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID;
-  if (!value) {
-    throw new Error("Missing HAZMAT_GITHUB_CLIENT_ID. Set it to your GitHub OAuth App Client ID.");
-  }
-  return value;
+  return process.env.HAZMAT_GITHUB_CLIENT_ID || process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID || DEFAULT_GITHUB_CLIENT_ID;
 }
 
 export async function loginWithGithubDeviceFlow(): Promise<AuthState> {
@@ -108,7 +105,13 @@ async function requestDeviceCode(clientId: string): Promise<DeviceCodeResponse> 
     body: JSON.stringify({ client_id: clientId, scope: "read:user" }),
   });
   const body = await response.json() as DeviceCodeResponse & { error?: string; error_description?: string };
-  if (!response.ok || body.error) throw new Error(body.error_description || body.error || "Failed to start GitHub device login.");
+  if (!response.ok || body.error) {
+    const detail = body.error_description || body.error || `HTTP ${response.status}`;
+    throw new Error(
+      `Failed to start GitHub device login (${detail}). ` +
+        "Check that the Hazmat GitHub OAuth App has Device Flow enabled and the Client ID is correct.",
+    );
+  }
   return body;
 }
 

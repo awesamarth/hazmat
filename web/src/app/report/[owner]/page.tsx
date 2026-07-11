@@ -1,7 +1,9 @@
 import { CardActions } from "@/components/CardActions";
+import { CopyCommand } from "@/components/CopyCommand";
 import { HazmatMark } from "@/components/HazmatMark";
 import { exposurePhrase, exposureStatus, exposureTone } from "@/lib/cardText";
 import { getLatestReport } from "@/lib/reports";
+import Link from "next/link";
 
 type Props = { params: Promise<{ owner: string }> };
 
@@ -24,6 +26,8 @@ type CardReport = {
 export default async function ReportPage({ params }: Props) {
   const { owner } = await params;
   const report = await loadCardReport(owner);
+  if (!report) return <NoReport owner={owner} />;
+
   const tone = exposureTone(report.score);
   const toneText = tone === "red" ? "text-red-500" : tone === "green" ? "text-emerald-400" : "text-hazard";
   const toneBg = tone === "red" ? "bg-red-500" : tone === "green" ? "bg-emerald-400" : "bg-hazard";
@@ -33,10 +37,10 @@ export default async function ReportPage({ params }: Props) {
     <main className="hazard-grid min-h-screen bg-ink px-5 py-10 text-zinc-100">
       <section className="mx-auto max-w-5xl">
         <div className="mb-6 flex items-center justify-between text-sm text-zinc-500">
-          <a className="flex items-center gap-3" href="/">
+          <Link className="flex items-center gap-3" href="/">
             <HazmatMark className="h-10 w-11" />
             <span className="text-2xl font-black leading-none tracking-[-0.06em] text-zinc-100">HAZMAT</span>
-          </a>
+          </Link>
           <span className="font-mono text-xs uppercase tracking-[0.18em]">public report</span>
         </div>
 
@@ -116,7 +120,7 @@ export default async function ReportPage({ params }: Props) {
 
               <div className="mt-8 rounded-2xl border border-hazard/20 bg-hazard/[0.06] p-5">
                 <p className="font-mono text-sm text-hazard">Run locally</p>
-                <code className="mt-2 block overflow-x-auto whitespace-nowrap font-mono text-sm text-zinc-300">$ npx hazmat scan --publish</code>
+                <code className="mt-2 block overflow-x-auto whitespace-nowrap font-mono text-sm text-zinc-300">$ npx hazmat-cli scan --publish</code>
               </div>
             </div>
           </div>
@@ -137,9 +141,9 @@ function Stat({ label, value, accent = false }: { label: string; value: number; 
   );
 }
 
-async function loadCardReport(owner: string): Promise<CardReport> {
+async function loadCardReport(owner: string): Promise<CardReport | null> {
   const stored = await getLatestReport(owner);
-  if (!stored) return mockReport(owner);
+  if (!stored) return null;
   const payload = stored.payload;
   return {
     owner: stored.owner,
@@ -158,18 +162,41 @@ async function loadCardReport(owner: string): Promise<CardReport> {
   };
 }
 
-function mockReport(owner: string): CardReport {
-  const score = 58;
-  return {
-    owner,
-    score,
-    status: exposureStatus(score),
-    phrase: exposurePhrase(score),
-    generatedAt: "July 10, 2026",
-    sources: ["Codex", "Claude", "pi", "OpenCode"],
-    stats: { sourcesScanned: 412, secretLikeValues: 1956, sensitiveRefs: 6210, highRisk: 81 },
-    topFindings: [["env-secret-assignment", 1180], ["database-url", 388], ["jwt", 44], ["webhook-url", 32]],
-  };
+function NoReport({ owner }: { owner: string }) {
+  return (
+    <main className="hazard-grid min-h-screen bg-ink px-5 py-10 text-zinc-100">
+      <section className="mx-auto max-w-5xl">
+        <div className="mb-12 flex items-center justify-between text-sm text-zinc-500">
+          <a className="flex items-center gap-3" href="/">
+            <HazmatMark className="h-10 w-11" />
+            <span className="text-2xl font-black leading-none tracking-[-0.06em] text-zinc-100">HAZMAT</span>
+          </a>
+          <span className="font-mono text-xs uppercase tracking-[0.18em]">no report</span>
+        </div>
+
+        <div className="mx-auto max-w-3xl text-center">
+          <p className="mb-4 font-mono text-sm uppercase tracking-[0.28em] text-hazard">No public report found</p>
+          <h1 className="text-5xl font-black leading-[0.9] tracking-[-0.08em] sm:text-8xl">No report for @{owner}</h1>
+          <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-zinc-400">
+            Generate one locally, then publish the aggregate-only card. Raw transcripts and secrets stay on your machine.
+          </p>
+        </div>
+
+        <div className="mx-auto mt-10 grid max-w-4xl gap-3">
+          <CopyCommand label="NPM" command="npx hazmat-cli scan --publish" />
+          <CopyCommand label="BUN" command="bunx hazmat-cli scan --publish" />
+          <CopyCommand label="CURL" command="curl -sSL https://hazmat-beta.vercel.app/install | sh" />
+        </div>
+
+        <div className="mx-auto mt-8 max-w-4xl rounded-2xl border border-zinc-800 bg-panel/90 p-6">
+          <p className="mb-3 font-mono text-sm text-hazard">▣ Privacy boundary</p>
+          <p className="leading-7 text-zinc-400">
+            Hazmat publishes score, totals, source types, and finding classes only. No prompts, transcript paths, line contents, fingerprints, or raw secrets.
+          </p>
+        </div>
+      </section>
+    </main>
+  );
 }
 
 function formatDate(value: string): string {
@@ -177,5 +204,7 @@ function formatDate(value: string): string {
 }
 
 function capitalize(value: string): string {
-  return value === "pi" ? "pi" : value.slice(0, 1).toUpperCase() + value.slice(1);
+  if (value === "pi") return "pi";
+  if (value.toLowerCase() === "opencode") return "OpenCode";
+  return value.slice(0, 1).toUpperCase() + value.slice(1);
 }

@@ -1,12 +1,15 @@
 {
-  "name": "hazmat",
-  "version": "0.0.0",
+  "name": "hazmat-cli",
+  "version": "0.1.1",
   "description": "Local exposure scanner for AI coding-agent transcripts.",
   "type": "module",
-  "private": true,
   "bin": {
-    "hazmat": "./dist/src/cli.js"
+    "hazmat": "dist/src/cli.js"
   },
+  "files": [
+    "dist/src",
+    "README.md"
+  ],
   "scripts": {
     "build": "rm -rf dist && tsc",
     "dev": "bun run src/cli.ts",

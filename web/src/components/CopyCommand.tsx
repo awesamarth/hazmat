@@ -20,7 +20,7 @@ export function CopyCommand({ label, command }: { label: string; command: string
       <button
         type="button"
         onClick={copy}
-        className="shrink-0 rounded-md border border-zinc-700 px-3 py-1 text-xs text-zinc-400 transition hover:border-hazard/70 hover:text-hazard"
+        className="inline-flex w-20 shrink-0 cursor-pointer items-center justify-center rounded-md border border-zinc-700 px-3 py-1 text-center text-xs text-zinc-400 transition hover:border-hazard/70 hover:text-hazard"
       >
         {copied ? "Copied" : "Copy"}
       </button>
