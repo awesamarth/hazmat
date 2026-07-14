@@ -16,6 +16,7 @@ async function fixtureFile() {
     JSON.stringify({ type: "response_item", payload: { type: "function_call_output", output: `DATABASE_URL=${fakeDbUrl}` } }),
     JSON.stringify({ type: "response_item", payload: { type: "function_call_output", output: `OPENAI_API_KEY=${fakeOpenAiKey}` } }),
     JSON.stringify({ type: "response_item", payload: { type: "function_call_output", output: `prefix\\nSEQUENCER_KEY=0xYOUR_SECP256K1_PRIVATE_KEY\\nVRF_PRIVATE_KEY=YOUR_BLS_PRIVATE_KEY_HEX_NO_0x` } }),
+    JSON.stringify({ type: "response_item", payload: { type: "function_call_output", output: "api_key=lowercase_fake_secret_12345" } }),
   ];
   await writeFile(file, `${lines.join("\n")}\n`, "utf8");
   return file;
@@ -27,9 +28,9 @@ test("dry-run scrub reports changes without modifying file", async () => {
   const result = await dryRunScrubTextFile(file);
   const after = await readFile(file, "utf8");
 
-  assert.equal(result.linesScanned, 4);
-  assert.equal(result.linesChanged, 3);
-  assert.equal(result.redactions, 4);
+  assert.equal(result.linesScanned, 5);
+  assert.equal(result.linesChanged, 4);
+  assert.equal(result.redactions, 5);
   assert.equal(after, before);
 });
 
@@ -39,18 +40,20 @@ test("in-place scrub redacts only secret values and preserves JSONL", async () =
   const after = await readFile(file, "utf8");
   const lines = after.trimEnd().split("\n");
 
-  assert.equal(result.linesScanned, 4);
-  assert.equal(result.linesChanged, 3);
-  assert.equal(result.redactions, 4);
-  assert.equal(lines.length, 4);
+  assert.equal(result.linesScanned, 5);
+  assert.equal(result.linesChanged, 4);
+  assert.equal(result.redactions, 5);
+  assert.equal(lines.length, 5);
   for (const line of lines) assert.doesNotThrow(() => JSON.parse(line));
   assert(!after.includes(fakeDbUrl));
   assert(!after.includes(fakeOpenAiKey));
   assert(!after.includes("0xYOUR_SECP256K1_PRIVATE_KEY"));
   assert(!after.includes("YOUR_BLS_PRIVATE_KEY_HEX_NO_0x"));
+  assert(!after.includes("lowercase_fake_secret_12345"));
   assert(after.includes("DATABASE_URL=<redacted:database-url:"));
   assert(after.includes("OPENAI_API_KEY=<redacted:openai-api-key:"));
   assert(after.includes("SEQUENCER_KEY=<redacted:env-secret-assignment:"));
   assert(after.includes("VRF_PRIVATE_KEY=<redacted:env-secret-assignment:"));
+  assert(after.includes("api_key=<redacted:env-secret-assignment:"));
   assert(after.includes('"message":"hello"'));
 });

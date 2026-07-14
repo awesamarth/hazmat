@@ -42,8 +42,11 @@ const secretPatterns: Array<{ label: string; regex: RegExp; valueGroup?: number;
   },
   {
     label: "env-secret-assignment",
-    hints: ["KEY", "TOKEN", "SECRET", "PASSWORD", "DATABASE_URL", "DB_URL", "AUTH"],
-    regex: /(?:^|\\n|[^A-Za-z0-9_])([A-Z][A-Z0-9_]*(?:KEY|TOKEN|SECRET|PASSWORD|PASS|DATABASE_URL|DB_URL|AUTH)[A-Z0-9_]*)\s*=\s*(["']?)([^\s"'`\\<>]{8,})\2/g,
+    hints: [
+      "KEY", "TOKEN", "SECRET", "PASSWORD", "DATABASE_URL", "DB_URL", "AUTH",
+      "_key", "apikey", "apiKey", "_token", "_secret", "password", "database_url", "db_url", "auth_token",
+    ],
+    regex: /(?:^|\\n|[^A-Za-z0-9_])([A-Za-z_][A-Za-z0-9_]*(?:KEY|TOKEN|SECRET|PASSWORD|PASS|DATABASE_URL|DB_URL|AUTH)[A-Za-z0-9_]*)\s*=\s*(["']?)([^\s"'`\\<>]{8,})\2/gi,
     valueGroup: 3,
   },
 ];
