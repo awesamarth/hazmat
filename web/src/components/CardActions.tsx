@@ -1,23 +1,44 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { tweetText } from "@/lib/cardText";
 
 export function CardActions({ imageUrl, score }: { imageUrl: string; score: number }) {
   const [copyState, setCopyState] = useState<"idle" | "copying" | "copied">("idle");
   const [downloadState, setDownloadState] = useState<"idle" | "downloading">("idle");
   const [pageUrl, setPageUrl] = useState("https://hazmat-beta.vercel.app");
-  useEffect(() => setPageUrl(window.location.href), []);
+  const imageBlobRef = useRef<Blob | null>(null);
+  const imagePromiseRef = useRef<Promise<Blob> | null>(null);
+
+  useEffect(() => {
+    setPageUrl(window.location.href);
+    const timer = window.setTimeout(() => void warmImage(), 350);
+    return () => window.clearTimeout(timer);
+  }, []);
   const tweetHref = useMemo(() => {
     const text = tweetText({ score, url: pageUrl });
     return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
   }, [pageUrl, score]);
 
+  async function getImageBlob() {
+    if (imageBlobRef.current) return imageBlobRef.current;
+    imagePromiseRef.current ??= fetch(imageUrl, { cache: "reload" }).then((response) => response.blob());
+    imageBlobRef.current = await imagePromiseRef.current;
+    return imageBlobRef.current;
+  }
+
+  async function warmImage() {
+    try {
+      await getImageBlob();
+    } catch {
+      imagePromiseRef.current = null;
+    }
+  }
+
   async function copyPng() {
     setCopyState("copying");
     try {
-      const response = await fetch(imageUrl, { cache: "no-store" });
-      const blob = await response.blob();
+      const blob = await getImageBlob();
       if (!navigator.clipboard || !("ClipboardItem" in window)) {
         downloadBlob(blob, "hazmat-card.png");
         setCopyState("idle");
@@ -27,6 +48,7 @@ export function CardActions({ imageUrl, score }: { imageUrl: string; score: numb
       setCopyState("copied");
       window.setTimeout(() => setCopyState("idle"), 1200);
     } catch {
+      imagePromiseRef.current = null;
       setCopyState("idle");
     }
   }
@@ -34,8 +56,7 @@ export function CardActions({ imageUrl, score }: { imageUrl: string; score: numb
   async function downloadPng() {
     setDownloadState("downloading");
     try {
-      const response = await fetch(imageUrl, { cache: "no-store" });
-      downloadBlob(await response.blob(), "hazmat-card.png");
+      downloadBlob(await getImageBlob(), "hazmat-card.png");
     } finally {
       setDownloadState("idle");
     }

@@ -6,7 +6,7 @@ import { stdin as input, stdout as output } from "node:process";
 import { Command } from "commander";
 import { discoverCodexFiles, scanCodexFile } from "./codex.js";
 import { scanGenericTranscriptFile } from "./jsonl.js";
-import { buildScanReport, buildSharePayload, formatReport } from "./report.js";
+import { buildScanReport, buildSharePayload, formatReport, formatScanNextSteps } from "./report.js";
 import { loginWithGithubDeviceFlow, publishPayload } from "./publish.js";
 import { scanSQLiteSource } from "./sqlite.js";
 import { discoverDefaultSources, discoverPathSources, type ScanSource } from "./sources.js";
@@ -38,6 +38,8 @@ program
       console.log(formatReport(report));
       console.log("");
       console.log(savedLine(latestScanPath));
+      console.log("");
+      console.log(formatScanNextSteps(report, { publishHint: !options.publish }));
     }
 
     if (options.publish) await publishReport(report);

@@ -7,12 +7,17 @@ export function calculateScore(sources: SourceReport[]): number {
   const mediumRiskFiles = sources.filter((source) => source.risk === "medium").length;
   const privateKeyCount = sources.flatMap((source) => source.secrets).filter((finding) => finding.label === "private-key").reduce((total, finding) => total + finding.count, 0);
 
-  const secretPenalty = Math.min(70, Math.log10(secretCount + 1) * 25);
-  const refPenalty = Math.min(18, Math.log10(refCount + 1) * 5);
-  const filePenalty = Math.min(12, highRiskFiles * 1.2 + mediumRiskFiles * 0.4);
+  const secretPenalty = Math.min(75, Math.log10(secretCount + 1) * 25);
   const privateKeyPenalty = Math.min(20, privateKeyCount * 8);
 
-  return Math.max(0, Math.round(100 - secretPenalty - refPenalty - filePenalty - privateKeyPenalty));
+  const refPenalty = secretCount === 0
+    ? Math.min(6, Math.log10(refCount + 1) * 1.5)
+    : Math.min(15, Math.log10(refCount + 1) * 4);
+  const filePenalty = secretCount === 0
+    ? Math.min(6, highRiskFiles * 0.8 + mediumRiskFiles * 0.05)
+    : Math.min(12, highRiskFiles * 1.2 + mediumRiskFiles * 0.25);
+
+  return Math.max(0, Math.round(100 - secretPenalty - privateKeyPenalty - refPenalty - filePenalty));
 }
 
 export function scoreLabel(score: number): string {

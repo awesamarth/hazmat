@@ -28,6 +28,21 @@ export function formatReport(report: ScanReport, options: { verbose?: boolean } 
   return options.verbose ? formatVerboseReport(report) : formatSummaryReport(report);
 }
 
+export function formatScanNextSteps(report: ScanReport, options: { publishHint?: boolean } = {}): string {
+  const lines: string[] = [];
+  lines.push(c.heading("Next steps"));
+  lines.push(c.muted("──────────"));
+  if (report.summary.secretFindings > 0) {
+    lines.push(`- Preview redactions: ${c.accent("npx hazmat-cli scrub --dry-run")}`);
+    lines.push(`- Scrub transcripts in-place: ${c.accent("npx hazmat-cli scrub")}`);
+  }
+  if (options.publishHint) {
+    lines.push(`- Publish your public card (aggregate-only, no raw secrets/private transcript data): ${c.accent("npx hazmat-cli export --publish")}`);
+  }
+  lines.push(`- Re-open this report later: ${c.accent("npx hazmat-cli report")}`);
+  return lines.join("\n");
+}
+
 function formatSummaryReport(report: ScanReport): string {
   const lines: string[] = [];
   const secretClasses = aggregateSecretClasses(report);
